@@ -57,8 +57,9 @@ agent/workflow via `credentials_name`). Each credential holds one account's
 
 ## API automation
 
-`register_connector.py` creates the connector and a named credential via
-`POST /v1/connectors` and `POST /v1/connectors/{id}/credentials` (stdlib
+`register_connector.py` creates the connector via `POST /v1/connectors` and
+a named credential via `POST /v1/connectors/{id}/{consumer_scope}/credentials`
+(the consumer scope is a path segment, e.g. `.../user/credentials`; stdlib
 only). It is a **dry-run by default** (`--apply` to execute) and never
 prints token values.
 

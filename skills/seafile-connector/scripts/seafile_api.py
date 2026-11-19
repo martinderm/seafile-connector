@@ -128,7 +128,7 @@ class SeafileClient:
     def search_files(self, query: str, repo_id: str,
                      page: int = 1, per_page: int = 100):
         return self._request("GET", "/api2/search/",
-                             params={"q": query, "repo_id": repo_id,
+                             params={"q": query, "search_repo": repo_id,
                                      "page": page, "per_page": per_page})
 
     def list_trash(self, repo_id: str, page: int = 1, per_page: int = 100):

@@ -123,14 +123,14 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(written, 12)
         self.assertEqual(m.call_args[0][0].full_url, link)
 
-    def test_search_requires_repo_id_in_url(self):
+    def test_search_maps_repo_id_to_search_repo_param(self):
         client = make_client()
         with mock.patch.object(seafile_api.urllib.request, "urlopen",
                                return_value=FakeResponse({"results": []})) as m:
             client.search_files("report", repo_id="r1")
         self.assertEqual(
             m.call_args[0][0].full_url,
-            "https://seafile.example.org/api2/search/?q=report&repo_id=r1&page=1&per_page=100")
+            "https://seafile.example.org/api2/search/?q=report&search_repo=r1&page=1&per_page=100")
 
     def test_upload_connection_error_becomes_seafile_error(self):
         client = make_client()

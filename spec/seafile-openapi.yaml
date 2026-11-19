@@ -169,10 +169,10 @@ paths:
           in: query
           required: true
           schema: {type: string}
-        - name: repo_id
+        - name: search_repo
           in: query
           required: true
-          description: Library to search in (required by the search endpoint)
+          description: Library UUID to search in (Seafile's filter parameter is `search_repo`, not `repo_id`)
           schema: {type: string}
         - name: page
           in: query
