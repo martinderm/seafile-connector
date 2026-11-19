@@ -17,11 +17,12 @@ info:
     converted by an OpenAPI import — use the portable skill scripts or an MCP
     fallback for uploads.
 
-    Auth: Seafile API token. In Mistral Studio/Work use the HTTP connector's
-    API-key mode with header `Authorization` and value `Token <api-token>`
-    (Seafile token scheme; `Bearer <token>` is also accepted on Seafile >= 11).
-    The account API (`/api2/...`) requires an account token; library tokens
-    cannot be used with these routes.
+    Auth: Seafile API token. In Mistral Studio/Work configure the connector
+    auth as "benutzerdefiniert" (custom header; shown as API key in Studio's
+    HTTP dialog): header `Authorization` = `Token <api-token>` (Seafile token
+    scheme; `Bearer <token>` is also accepted on Seafile >= 11). The account
+    API (`/api2/...`) requires an account token; library tokens cannot be
+    used with these routes.
 
     Generate the token in the Seafile web UI (Avatar → Settings → API Token);
     store it in the Mistral Secrets Manager, never in this file or the repo.
@@ -201,8 +202,8 @@ components:
         Seafile API token, sent verbatim in the Authorization header as
         `Token <api-token>` (Seafile token scheme; `Bearer <token>` is only
         accepted on Seafile >= 11). In Mistral Studio/Work configure the
-        HTTP connector's API-key auth with header name `Authorization` and
-        value `Token <api-token>`.
+        connector auth as "benutzerdefiniert" (custom header; API key in the
+        Studio HTTP dialog) with header `Authorization` = `Token <api-token>`.
   parameters:
     RepoId:
       name: repo_id

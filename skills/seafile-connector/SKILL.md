@@ -97,8 +97,9 @@ OpenAPI/HTTP-connector import — that is why the script exists.
 ## Mistral Studio/Work setup (not part of this skill)
 
 In Studio/Work prefer the **HTTP connector** (no MCP server): protocol
-`http`, server URL = Seafile root, API-key auth with header `Authorization`
-= `Token <api-token>`, import `spec/seafile-openapi.yaml` from the repo (or
+`http`, server URL = Seafile root, auth **„benutzerdefiniert“** (custom
+header; shown as API key in Studio's HTTP dialog) with header
+`Authorization` = `Token <api-token>`, import `spec/seafile-openapi.yaml` from the repo (or
 the official https://github.com/haiwen/seafile-open-api spec), then toggle
 tools (read on, write on manual approval) and test in the Connectors
 Debugger with `list_repos`. Several Seafile accounts = several named

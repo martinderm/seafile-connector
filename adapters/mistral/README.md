@@ -38,7 +38,7 @@ credentials (secret names are normalized to lowercase, e.g.):
 | `seafile_server_url` | `https://…` (real Seafile root, entered only in Secrets Manager) | connector server URL (UI), `SEAFILE_SERVER_URL` in scripts |
 | `seafile_api_token` | Seafile account API token | credential header `Authorization: Token …`, `SEAFILE_API_TOKEN` in scripts |
 
-- Studio/Work UI: enter server URL and API-key credential from the secrets
+- Studio/Work UI: enter server URL and the benutzerdefiniert/custom-header credential from the secrets
   (the connector page / Secrets Manager), not from the repo.
 - Agents/sandboxes: bind them via `secrets={"SEAFILE_SERVER_URL": "seafile_server_url",
   "SEAFILE_API_TOKEN": "seafile_api_token"}` — values never reach code, logs, or git.
@@ -51,9 +51,12 @@ credentials (secret names are normalized to lowercase, e.g.):
 2. Protocol **`http`**, server URL = Seafile server root
    (e.g. `https://seafile.example.org`; the API hangs off the root:
    `/api2/…`, `/api/v2.1/…`).
-3. Auth = **API key**: header name `Authorization`, value
-   `Token <api-token>` (Seafile token scheme; `Bearer <token>` also works on
-   Seafile ≥ 11). Not OAuth — Seafile SSO protects the web UI, not the API.
+3. Auth = **„benutzerdefiniert“** (custom header; in Studio's HTTP-connector
+   dialog the same option is shown as *API key* — key name + value). Set
+   header name `Authorization`, value `Token <api-token>` (Seafile token
+   scheme; `Bearer <token>` also works on Seafile ≥ 11). The only auth
+   choices are **benutzerdefiniert / OAuth / keine** — use benutzerdefiniert,
+   not OAuth: Seafile SSO protects the web UI, not the API.
 4. Import the OpenAPI spec on the connector page: upload
    `spec/seafile-openapi.yaml` from this repo, or use the public URL of the
    official spec https://github.com/haiwen/seafile-open-api (raw). The URL
