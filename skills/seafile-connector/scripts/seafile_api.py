@@ -64,7 +64,10 @@ class SeafileClient:
 
     def _request(self, method: str, path: str, params: dict | None = None,
                  raw: bool = False, extra_headers: dict | None = None):
-        url = self.base_url + path
+        if path.startswith(("http://", "https://")):
+            url = path
+        else:
+            url = self.base_url + path
         if params:
             query = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
             if query:
@@ -103,7 +106,8 @@ class SeafileClient:
         return self._request("GET", f"/api/v2.1/repos/{repo_id}/dir/", params={"p": path})
 
     def get_file(self, repo_id: str, path: str):
-        return self._request("GET", f"/api/v2.1/repos/{repo_id}/file/", params={"p": path})
+        return self._request("GET", f"/api/v2.1/repos/{repo_id}/file/detail/",
+                             params={"p": path})
 
     def get_download_link(self, repo_id: str, path: str):
         return self._request("GET", f"/api/v2.1/repos/{repo_id}/download-link/",
@@ -124,8 +128,13 @@ class SeafileClient:
                              params={"page": page, "per_page": per_page})
 
     def download_file(self, repo_id: str, path: str) -> bytes:
-        return self._request("GET", f"/api2/repos/{repo_id}/file/",
-                             params={"p": path, "raw": 1}, raw=True)
+        link = self.get_download_link(repo_id, path)
+        url = link.get("download_link") if isinstance(link, dict) else link
+        if not url:
+            raise SeafileError(f"no download link returned: {link!r}")
+        if url.startswith("/"):
+            url = self.base_url + url
+        return self._request("GET", url, raw=True)
 
     # ---- write path (secondary; keep behind manual approval) ----------
 
@@ -136,7 +145,7 @@ class SeafileClient:
             raise SeafileError(f"no upload link returned: {link!r}")
         boundary = uuid.uuid4().hex
         body = b"".join([
-            f"--{boundary}\r\nContent-Disposition: form-data; name=\"parent\"\r\n\r\n{remote_dir}\r\n".encode(),
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"parent_dir\"\r\n\r\n{remote_dir}\r\n".encode(),
             (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
              f"filename=\"{filename}\"\r\nContent-Type: application/octet-stream\r\n\r\n").encode()
             + data + b"\r\n",

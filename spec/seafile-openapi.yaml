@@ -28,7 +28,7 @@ tags:
   - name: seafile
     description: Seafile REST API v2.1
 security:
-  - bearerAuth: []
+  - tokenAuth: []
 paths:
   /api/v2.1/repos/:
     get:
@@ -82,11 +82,11 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/DirEntry"}
-  /api/v2.1/repos/{repo_id}/file/:
+  /api/v2.1/repos/{repo_id}/file/detail/:
     get:
       operationId: get_file_detail
       tags: [seafile]
-      summary: Get file metadata/detail for a path
+      summary: Get file metadata/detail for a path (NOT the content/download endpoint)
       parameters:
         - $ref: "#/components/parameters/RepoId"
         - name: p
@@ -188,13 +188,16 @@ paths:
                     items: {$ref: "#/components/schemas/SearchHit"}
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
       description: |
-        Seafile API token. Configure the connector's API-key auth with header
-        `Authorization` and value `Token <api-token>` (Seafile token scheme;
-        `Bearer <token>` also works on Seafile >= 11).
+        Seafile API token, sent verbatim in the Authorization header as
+        `Token <api-token>` (Seafile token scheme; `Bearer <token>` is only
+        accepted on Seafile >= 11). In Mistral Studio/Work configure the
+        HTTP connector's API-key auth with header name `Authorization` and
+        value `Token <api-token>`.
   parameters:
     RepoId:
       name: repo_id

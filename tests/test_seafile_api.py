@@ -65,6 +65,44 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(ctx.exception.status, 401)
         self.assertIn("bad token", ctx.exception.body)
 
+    def test_get_file_uses_detail_endpoint(self):
+        client = make_client()
+        with mock.patch.object(seafile_api.urllib.request, "urlopen",
+                               return_value=FakeResponse({"type": "file", "name": "a.md"})) as m:
+            client.get_file("r1", "/a.md")
+        req = m.call_args[0][0]
+        self.assertEqual(
+            req.full_url,
+            "https://seafile.example.org/api/v2.1/repos/r1/file/detail/?p=%2Fa.md")
+
+    def test_download_file_fetches_link_then_bytes(self):
+        client = make_client()
+        link = "https://seafile.example.org/d/abc123/files/?p=/a.md"
+        responses = [FakeResponse(link), FakeResponse(b"RAW-BYTES")]
+        with mock.patch.object(seafile_api.urllib.request, "urlopen",
+                               side_effect=responses) as m:
+            data = client.download_file("r1", "/a.md")
+        self.assertEqual(data, b"RAW-BYTES")
+        first, second = m.call_args_list[0][0][0], m.call_args_list[1][0][0]
+        self.assertEqual(
+            first.full_url,
+            "https://seafile.example.org/api/v2.1/repos/r1/download-link/?p=%2Fa.md")
+        self.assertEqual(second.full_url, link)
+        self.assertEqual(second.headers["Authorization"], "Token secret-token")
+
+    def test_upload_uses_parent_dir_field(self):
+        client = make_client()
+        with mock.patch.object(seafile_api.SeafileClient, "get_upload_link",
+                               return_value={"upload_link": "https://seafile.example.org/upload/xyz"}), \
+             mock.patch.object(seafile_api.urllib.request, "urlopen",
+                               return_value=FakeResponse(b'["ok"]')) as m:
+            client.upload_file("r1", "/docs/", "a.md", b"hello")
+        req = m.call_args[0][0]
+        self.assertEqual(req.full_url, "https://seafile.example.org/upload/xyz")
+        self.assertIn(b'name="parent_dir"', req.data)
+        self.assertIn(b"/docs/", req.data)
+        self.assertIn(b'name="file"; filename="a.md"', req.data)
+
     def test_walk_recursion_builds_paths(self):
         client = make_client()
         listing = {
