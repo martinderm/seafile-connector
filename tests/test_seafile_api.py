@@ -50,7 +50,7 @@ class ClientTest(unittest.TestCase):
             result = client.list_repos(page=2, per_page=50)
         req = m.call_args[0][0]
         self.assertEqual(req.full_url,
-                         "https://seafile.example.org/api/v2.1/repos/?page=2&per_page=50")
+                         "https://seafile.example.org/api2/repos/?page=2&per_page=50")
         self.assertEqual(req.headers["Authorization"], "Token secret-token")
         self.assertEqual(result, [{"id": "r1"}])
 
@@ -73,7 +73,7 @@ class ClientTest(unittest.TestCase):
         req = m.call_args[0][0]
         self.assertEqual(
             req.full_url,
-            "https://seafile.example.org/api/v2.1/repos/r1/file/detail/?p=%2Fa.md")
+            "https://seafile.example.org/api2/repos/r1/file/detail/?p=%2Fa.md")
 
     def test_download_file_fetches_link_then_bytes(self):
         client = make_client()
@@ -86,7 +86,7 @@ class ClientTest(unittest.TestCase):
         first, second = m.call_args_list[0][0][0], m.call_args_list[1][0][0]
         self.assertEqual(
             first.full_url,
-            "https://seafile.example.org/api/v2.1/repos/r1/download-link/?p=%2Fa.md")
+            "https://seafile.example.org/api2/repos/r1/download-link/?p=%2Fa.md")
         self.assertEqual(second.full_url, link)
         self.assertEqual(second.headers["Authorization"], "Token secret-token")
 

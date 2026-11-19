@@ -63,7 +63,7 @@ Skill scripts (any Python 3.10+ with network):
 
 ```bash
 export SEAFILE_SERVER_URL="https://seafile.example.org"
-export SEAFILE_API_TOKEN="..."   # read-only library token preferred
+export SEAFILE_API_TOKEN="..."   # account token (account API /api2/...)
 python3 skills/seafile-connector/scripts/seafile_api.py repos
 python3 skills/seafile-connector/scripts/seafile_api.py filemap <repo_id> --out filemap.json
 python3 skills/seafile-connector/scripts/seafile_api.py filemap <repo_id> --diff filemap.old.json
@@ -77,8 +77,10 @@ Studio/Work HTTP connector: step-by-step in
 - **Never commit credentials.** Tokens come from env vars
   (`SEAFILE_API_TOKEN`, `MISTRAL_API_KEY`) or the Mistral Secrets Manager at
   runtime; in Studio sandboxes via `secrets=` / `header_bindings`.
-- Prefer **read-only library tokens**; account token only for search. Store
-  tokens in the Secrets Manager, not in spec/skill/repo.
+- The curated spec and skill scripts target the **account API** (`/api2/…`),
+  so they need an **account token** (repo-scoped library tokens use the
+  separate `/api/v2.1/via-repo-token/…` routes — not covered yet). Use least
+  privilege. Store tokens in the Secrets Manager, not in spec/skill/repo.
 - Write operations (upload) stay on **manual approval**.
 - Only public HTTPS with valid TLS is reachable from Mistral cloud
   sandboxes/gateway; internal Seafile → local Vibe Code path.

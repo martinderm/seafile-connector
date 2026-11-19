@@ -1,13 +1,17 @@
 openapi: 3.0.3
 info:
   title: Seafile Web API (curated subset for the Seafile connector)
-  version: 2.1-curated.1
+  version: api2-curated.1
   description: |
     Curated subset of the official Seafile OpenAPI spec
     (https://github.com/haiwen/seafile-open-api — docs:
     https://manual.seafile.com/latest/develop/web_api_v2.1/) covering the
     cloud-atlas read path: libraries, directory listings (with mtime/size for
     change detection), file details, download/upload links, search, trash.
+
+    All routes use the classic **account API** (`/api2/...`), which requires
+    an account token. Repo-scoped library tokens use the separate
+    `/api/v2.1/via-repo-token/...` API and are not covered by this spec.
 
     Upload itself is a multipart POST to the upload link and is typically NOT
     converted by an OpenAPI import — use the portable skill scripts or an MCP
@@ -16,8 +20,8 @@ info:
     Auth: Seafile API token. In Mistral Studio/Work use the HTTP connector's
     API-key mode with header `Authorization` and value `Token <api-token>`
     (Seafile token scheme; `Bearer <token>` is also accepted on Seafile >= 11).
-    `search_files` requires an account token — library tokens cannot search.
-    Prefer a read-only library token where possible.
+    The account API (`/api2/...`) requires an account token; library tokens
+    cannot be used with these routes.
 
     Generate the token in the Seafile web UI (Avatar → Settings → API Token);
     store it in the Mistral Secrets Manager, never in this file or the repo.
@@ -30,7 +34,7 @@ tags:
 security:
   - tokenAuth: []
 paths:
-  /api/v2.1/repos/:
+  /api2/repos/:
     get:
       operationId: list_repos
       tags: [seafile]
@@ -50,7 +54,7 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/Repo"}
-  /api/v2.1/repos/{repo_id}/:
+  /api2/repos/{repo_id}/:
     get:
       operationId: get_repo
       tags: [seafile]
@@ -63,7 +67,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Repo"}
-  /api/v2.1/repos/{repo_id}/dir/:
+  /api2/repos/{repo_id}/dir/:
     get:
       operationId: list_dir
       tags: [seafile]
@@ -82,7 +86,7 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/DirEntry"}
-  /api/v2.1/repos/{repo_id}/file/detail/:
+  /api2/repos/{repo_id}/file/detail/:
     get:
       operationId: get_file_detail
       tags: [seafile]
@@ -100,7 +104,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/FileDetail"}
-  /api/v2.1/repos/{repo_id}/download-link/:
+  /api2/repos/{repo_id}/download-link/:
     get:
       operationId: get_download_link
       tags: [seafile]
@@ -117,7 +121,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/LinkResponse"}
-  /api/v2.1/repos/{repo_id}/upload-link/:
+  /api2/repos/{repo_id}/upload-link/:
     get:
       operationId: get_upload_link
       tags: [seafile]
@@ -134,7 +138,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/LinkResponse"}
-  /api/v2.1/repos/{repo_id}/trash/:
+  /api2/repos/{repo_id}/trash/:
     get:
       operationId: list_trash
       tags: [seafile]
@@ -155,11 +159,11 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/TrashEntry"}
-  /api/v2.1/search-file/:
+  /api2/search/:
     get:
       operationId: search_files
       tags: [seafile]
-      summary: Search files (requires an ACCOUNT token — library tokens cannot search)
+      summary: Search files across libraries (account API — requires an account token)
       parameters:
         - name: q
           in: query
@@ -236,11 +240,9 @@ components:
         download_url: {type: string}
       additionalProperties: true
     LinkResponse:
-      type: object
-      properties:
-        download_link: {type: string}
-        upload_link: {type: string}
-      additionalProperties: true
+      type: string
+      format: uri
+      description: The Seafile link endpoints return the link as a plain URI string.
     TrashEntry:
       type: object
       properties:

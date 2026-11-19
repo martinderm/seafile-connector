@@ -16,11 +16,13 @@ links).
   internal/LAN or self-signed servers; those need the local Vibe Code path
   with the skill scripts or a stdio MCP).
 - **Admin rights** in Studio/Work to add a custom connector.
-- A Seafile **API token** (web UI: Avatar → Settings → API Token — works
-  with an active SSO session and avoids the 2FA header problem of
-  `POST /api2/auth-token/`). Prefer a **read-only library token**; an
-  **account token** is only needed for `search_files` (library tokens cannot
-  search).
+- A Seafile **account API token** (web UI: Avatar → Settings → API Token —
+  works with an active SSO session and avoids the 2FA header problem of
+  `POST /api2/auth-token/`). The curated spec targets the account API
+  (`/api2/…`), so it needs an account token; repo-scoped library tokens use
+  the separate `/api/v2.1/via-repo-token/…` routes, which are not part of
+  this spec (can be added as a second spec/connector later). Use a
+  least-privilege account.
 - Store the token in the **Mistral Secrets Manager** — never in the spec,
   skill, scripts, or repo.
 

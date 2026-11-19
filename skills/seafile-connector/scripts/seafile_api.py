@@ -14,6 +14,10 @@ manager):
 The token is sent as ``Authorization: Token <token>`` (Seafile token scheme;
 a token already starting with ``Token ``/``Bearer `` is passed through).
 Seafile >= 11 also accepts ``Bearer <token>``.
+
+This client implements the **account API** (``/api2/...`` routes) and
+therefore requires an **account token**. Repo-scoped library tokens use the
+separate ``/api/v2.1/via-repo-token/...`` routes and are not supported here.
 """
 from __future__ import annotations
 
@@ -96,45 +100,48 @@ class SeafileClient:
     # ---- read path ----------------------------------------------------
 
     def list_repos(self, page: int = 1, per_page: int = 100):
-        return self._request("GET", "/api/v2.1/repos/",
+        return self._request("GET", "/api2/repos/",
                              params={"page": page, "per_page": per_page})
 
     def get_repo(self, repo_id: str):
-        return self._request("GET", f"/api/v2.1/repos/{repo_id}/")
+        return self._request("GET", f"/api2/repos/{repo_id}/")
 
     def list_dir(self, repo_id: str, path: str = "/"):
-        return self._request("GET", f"/api/v2.1/repos/{repo_id}/dir/", params={"p": path})
+        return self._request("GET", f"/api2/repos/{repo_id}/dir/", params={"p": path})
 
     def get_file(self, repo_id: str, path: str):
-        return self._request("GET", f"/api/v2.1/repos/{repo_id}/file/detail/",
+        return self._request("GET", f"/api2/repos/{repo_id}/file/detail/",
                              params={"p": path})
 
     def get_download_link(self, repo_id: str, path: str):
-        return self._request("GET", f"/api/v2.1/repos/{repo_id}/download-link/",
+        return self._request("GET", f"/api2/repos/{repo_id}/download-link/",
                              params={"p": path})
 
     def get_upload_link(self, repo_id: str, path: str = "/"):
-        return self._request("GET", f"/api/v2.1/repos/{repo_id}/upload-link/",
+        return self._request("GET", f"/api2/repos/{repo_id}/upload-link/",
                              params={"p": path})
 
     def search_files(self, query: str, repo_id: str | None = None,
                      page: int = 1, per_page: int = 100):
-        return self._request("GET", "/api/v2.1/search-file/",
+        return self._request("GET", "/api2/search/",
                              params={"q": query, "repo_id": repo_id,
                                      "page": page, "per_page": per_page})
 
     def list_trash(self, repo_id: str, page: int = 1, per_page: int = 100):
-        return self._request("GET", f"/api/v2.1/repos/{repo_id}/trash/",
+        return self._request("GET", f"/api2/repos/{repo_id}/trash/",
                              params={"page": page, "per_page": per_page})
 
     def download_file(self, repo_id: str, path: str) -> bytes:
         link = self.get_download_link(repo_id, path)
         url = link.get("download_link") if isinstance(link, dict) else link
         if not url:
-            raise SeafileError(f"no download link returned: {link!r}")
+            raise SeafileError("no download link returned in server response")
         if url.startswith("/"):
             url = self.base_url + url
-        return self._request("GET", url, raw=True)
+        try:
+            return self._request("GET", url, raw=True)
+        except SeafileAPIError as exc:
+            raise SeafileAPIError(exc.status, exc.body, "<download-url>") from exc
 
     # ---- write path (secondary; keep behind manual approval) ----------
 
@@ -142,7 +149,7 @@ class SeafileClient:
         link = self.get_upload_link(repo_id, remote_dir)
         upload_url = link.get("upload_link") if isinstance(link, dict) else link
         if not upload_url:
-            raise SeafileError(f"no upload link returned: {link!r}")
+            raise SeafileError("no upload link returned in server response")
         boundary = uuid.uuid4().hex
         body = b"".join([
             f"--{boundary}\r\nContent-Disposition: form-data; name=\"parent_dir\"\r\n\r\n{remote_dir}\r\n".encode(),
@@ -165,7 +172,8 @@ class SeafileClient:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 return resp.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as exc:
-            raise SeafileAPIError(exc.code, exc.read().decode("utf-8", "replace"), upload_url) from exc
+            raise SeafileAPIError(exc.code, exc.read().decode("utf-8", "replace"),
+                                  "<upload-url>") from exc
 
     # ---- recursive listing / filemap -----------------------------------
 

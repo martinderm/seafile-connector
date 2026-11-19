@@ -28,11 +28,13 @@ connector registration in Studio/Work) lives in the repo under
   tools instead of these scripts.
 - Environment variables (never hardcode, never commit):
   - `SEAFILE_SERVER_URL` — e.g. `https://seafile.example.org`
-  - `SEAFILE_API_TOKEN` — API token from the Seafile web UI
-    (Avatar → Settings → API Token). Prefer a **read-only library token**
-    where possible; `search` requires an **account token** (library tokens
-    cannot search). In Mistral sandboxes bind the token via `secrets=` /
-    `header_bindings` (Secrets Manager), locally via env or a secret file.
+  - `SEAFILE_API_TOKEN` — **account API token** from the Seafile web UI
+    (Avatar → Settings → API Token). These scripts implement the account API
+    (`/api2/...`), so they require an account token; repo-scoped library
+    tokens use the separate `/api/v2.1/via-repo-token/...` routes and are not
+    supported here (a scoped repo-token mode can be added later). In Mistral
+    sandboxes bind the token via `secrets=` / `header_bindings` (Secrets
+    Manager), locally via env or a secret file.
 
 ## Scripts
 
