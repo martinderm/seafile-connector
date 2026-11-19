@@ -30,7 +30,7 @@ links).
 
 1. Studio/Work → **Connectors → + Add connector → Add a custom connector**.
 2. Protocol **`http`**, server URL = Seafile server root
-   (e.g. `https://seafile.example.org`; the API hangs off the root:
+   (`https://drive.boku.ac.at`; the API hangs off the root:
    `/api2/…`, `/api/v2.1/…`).
 3. Auth = **API key**: header name `Authorization`, value
    `Token <api-token>` (Seafile token scheme; `Bearer <token>` also works on
@@ -65,7 +65,7 @@ prints token values.
 
 ```bash
 export MISTRAL_API_KEY="..."        # Connector access scope required
-export SEAFILE_SERVER_URL="https://seafile.example.org"
+export SEAFILE_SERVER_URL="https://drive.boku.ac.at"
 export SEAFILE_API_TOKEN="..."      # only needed with --apply
 
 python3 adapters/mistral/register_connector.py                 # dry-run
