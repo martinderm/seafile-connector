@@ -181,13 +181,16 @@ class SeafileClient:
                              params={"p": path, "share_type": share_type})
 
     def get_dir_detail(self, repo_id: str, path: str = "/"):
+        # v2.1 dir/detail uses query key `path` (not `p`)
         return self._request("GET", f"/api/v2.1/repos/{repo_id}/dir/detail/",
-                             params={"p": path})
+                             params={"path": path})
 
     def get_file_history(self, repo_id: str, path: str,
-                         page: int = 1, per_page: int = 100):
+                         commit_id: str | None = None):
+        # v2.1 file/history uses query key `path` and paginates via commit_id
+        # (pass next_start_commit from the previous response to continue)
         return self._request("GET", f"/api/v2.1/repos/{repo_id}/file/history/",
-                             params={"p": path, "page": page, "per_page": per_page})
+                             params={"path": path, "commit_id": commit_id})
 
     def get_file_revision_link(self, repo_id: str, path: str, commit_id: str):
         return self._request("GET", f"/api2/repos/{repo_id}/file/revision/",
@@ -197,17 +200,24 @@ class SeafileClient:
         return self._request("GET", f"/api/v2.1/repos/{repo_id}/history/",
                              params={"page": page, "per_page": per_page})
 
-    def get_smart_link(self, repo_id: str, path: str):
+    def get_smart_link(self, repo_id: str, path: str, is_dir: bool = False):
         return self._request("GET", "/api/v2.1/smart-link/",
-                             params={"repo_id": repo_id, "p": path})
+                             params={"repo_id": repo_id, "path": path,
+                                     "is_dir": "true" if is_dir else "false"})
 
-    def get_zip_task(self, repo_id: str, path: str = "/"):
+    def get_zip_task(self, repo_id: str, parent_dir: str = "/",
+                     dirents=None):
+        """Start an async server-side zip job (side-effecting GET, not a plain
+        read). `dirents` is a list of item names or a comma-separated string."""
+        if isinstance(dirents, (list, tuple)):
+            dirents = ",".join(dirents)
         return self._request("GET", f"/api/v2.1/repos/{repo_id}/zip-task/",
-                             params={"p": path})
+                             params={"parent_dir": parent_dir, "dirents": dirents})
 
     def get_zip_progress(self, zip_token: str):
+        # official docs use query key `token` for the zip task id
         return self._request("GET", "/api/v2.1/query-zip-progress/",
-                             params={"zip_token": zip_token})
+                             params={"token": zip_token})
 
     def _download_url(self, repo_id: str, path: str) -> str:
         link = self.get_download_link(repo_id, path)
@@ -416,11 +426,13 @@ def main(argv=None) -> None:
     p.add_argument("repo_id")
     p.add_argument("--path", default="/")
 
-    p = sub.add_parser("file-history", help="commit history of a file")
+    p = sub.add_parser("file-history", help="version history of a file "
+                                            "(paginate via --commit-id)")
     p.add_argument("repo_id")
     p.add_argument("--path", required=True)
-    p.add_argument("--page", type=int, default=1)
-    p.add_argument("--per-page", type=int, default=100)
+    p.add_argument("--commit-id", default=None,
+                   help="continue from this commit (next_start_commit of the "
+                        "previous response)")
 
     p = sub.add_parser("file-revision", help="download link of an old file revision")
     p.add_argument("repo_id")
@@ -432,13 +444,18 @@ def main(argv=None) -> None:
     p.add_argument("--page", type=int, default=1)
     p.add_argument("--per-page", type=int, default=100)
 
-    p = sub.add_parser("smart-link", help="smart link (view/edit) for a path")
+    p = sub.add_parser("smart-link", help="smart link (permalink) for a file/dir")
     p.add_argument("repo_id")
     p.add_argument("--path", required=True)
+    p.add_argument("--is-dir", action="store_true",
+                   help="path is a directory (is_dir=true)")
 
-    p = sub.add_parser("zip-task", help="create a zip task for a dir or file")
+    p = sub.add_parser("zip-task", help="start a zip task (side-effecting GET: "
+                                        "starts a server-side job; manual approval)")
     p.add_argument("repo_id")
-    p.add_argument("--path", default="/")
+    p.add_argument("--parent-dir", default="/")
+    p.add_argument("--dirents", required=True,
+                   help="comma-separated item names to archive, e.g. my_dir,a.md")
 
     p = sub.add_parser("zip-progress", help="progress of a zip task")
     p.add_argument("zip_token")
@@ -518,15 +535,16 @@ def main(argv=None) -> None:
         _emit(client.get_dir_detail(args.repo_id, args.path), args.compact)
     elif args.command == "file-history":
         _emit(client.get_file_history(args.repo_id, args.path,
-                                      page=args.page, per_page=args.per_page), args.compact)
+                                      commit_id=args.commit_id), args.compact)
     elif args.command == "file-revision":
         _emit(client.get_file_revision_link(args.repo_id, args.path, args.commit_id), args.compact)
     elif args.command == "repo-history":
         _emit(client.get_repo_history(args.repo_id, page=args.page, per_page=args.per_page), args.compact)
     elif args.command == "smart-link":
-        _emit(client.get_smart_link(args.repo_id, args.path), args.compact)
+        _emit(client.get_smart_link(args.repo_id, args.path, is_dir=args.is_dir), args.compact)
     elif args.command == "zip-task":
-        _emit(client.get_zip_task(args.repo_id, args.path), args.compact)
+        _emit(client.get_zip_task(args.repo_id, parent_dir=args.parent_dir,
+                                  dirents=args.dirents), args.compact)
     elif args.command == "zip-progress":
         _emit(client.get_zip_progress(args.zip_token), args.compact)
     elif args.command == "trash":

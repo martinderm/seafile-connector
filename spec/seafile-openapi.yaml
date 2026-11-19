@@ -343,9 +343,10 @@ paths:
       summary: Directory detail (incl. share/permission info)
       parameters:
         - $ref: "#/components/parameters/RepoId"
-        - name: p
+        - name: path
           in: query
           required: true
+          description: Path of the directory, e.g. /Develop (official v2.1 docs use `path` here, not `p`)
           schema: {type: string}
       responses:
         "200":
@@ -360,16 +361,15 @@ paths:
       summary: Version history of a file (commit ids for revision download / change detection)
       parameters:
         - $ref: "#/components/parameters/RepoId"
-        - name: p
+        - name: path
           in: query
           required: true
+          description: File path (official v2.1 docs use `path` here, not `p`)
           schema: {type: string}
-        - name: page
+        - name: commit_id
           in: query
-          schema: {type: integer, default: 1}
-        - name: per_page
-          in: query
-          schema: {type: integer, default: 100, maximum: 1000}
+          schema: {type: string}
+          description: Continue history from this commit; use `next_start_commit` from the previous response. If omitted, the library head commit is used.
       responses:
         "200":
           description: File history (commits) object
@@ -426,10 +426,16 @@ paths:
           in: query
           required: true
           schema: {type: string}
-        - name: p
+        - name: path
           in: query
           required: true
+          description: Path of the file/folder, e.g. /8.md
           schema: {type: string}
+        - name: is_dir
+          in: query
+          required: true
+          description: true if the path is a directory, false for a file
+          schema: {type: boolean}
       responses:
         "200":
           description: Smart link object
@@ -440,12 +446,24 @@ paths:
     get:
       operationId: get_zip_task
       tags: [seafile]
-      summary: Start a zip task for a folder (bulk download); returns zip_token
+      summary: Start a zip task for files/folders (bulk download); returns zip_token
+      description: >-
+        Although this is an HTTP GET, it starts an asynchronous server-side zip
+        job and consumes server resources — treat it as a side-effecting
+        operation (manual approval in connector UIs), NOT as a pre-authorized
+        read-only tool.
       parameters:
         - $ref: "#/components/parameters/RepoId"
-        - name: p
+        - name: parent_dir
           in: query
-          schema: {type: string, default: "/"}
+          required: true
+          description: Parent directory of the items to archive, e.g. /
+          schema: {type: string}
+        - name: dirents
+          in: query
+          required: true
+          description: Comma-separated names of the files/folders to archive, e.g. "my_dir_name" or "a.md,b.pdf"
+          schema: {type: string}
       responses:
         "200":
           description: Zip task object (zip_token)
@@ -456,11 +474,12 @@ paths:
     get:
       operationId: get_zip_progress
       tags: [seafile]
-      summary: Progress of a zip task (by zip_token); includes the download link when done
+      summary: Progress of a zip task (by token); includes the download link when done
       parameters:
-        - name: zip_token
+        - name: token
           in: query
           required: true
+          description: The zip_token returned by the zip-task operation (official docs use query key `token`)
           schema: {type: string}
       responses:
         "200":
