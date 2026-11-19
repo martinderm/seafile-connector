@@ -47,12 +47,16 @@ for two different paths:
 
 | Secret name (example) | Value (entered only in Secrets Manager) | Bound as |
 |---|---|---|
-| `seafile_server_url` | real Seafile root, e.g. `https://…` | `SEAFILE_SERVER_URL` (scripts), connector server URL (UI) |
-| `seafile_api_token` | Seafile account API token | `SEAFILE_API_TOKEN` (scripts) |
+| `seafile_server_url` | real Seafile root, e.g. `https://…` | `SEAFILE_SERVER_URL` (scripts/agents only — the connector's server URL is part of the connector definition and is set directly on the connector, not via a secret) |
+| `seafile_api_token` | Seafile account API token | `SEAFILE_API_TOKEN` (scripts/agents) |
 
-- Agents (Agents SDK): `secrets={"SEAFILE_API_TOKEN": agents.MistralSecret.workspace("seafile_api_token", worker_env=True)}`,
-  or on deploy `agents deploy --secret-binding SEAFILE_API_TOKEN=secret:workspace:seafile_api_token`.
-  Sandboxes: `secrets=` / `header_bindings=` (values injected at runtime).
+- Agents (Agents SDK) — values must be `MistralSecret` references, not bare
+  strings, and both variables the scripts need must be bound:
+  `secrets={"SEAFILE_SERVER_URL": agents.MistralSecret.workspace("seafile_server_url", worker_env=True), "SEAFILE_API_TOKEN": agents.MistralSecret.workspace("seafile_api_token", worker_env=True)}`
+  or on deploy: `agents deploy --secret-binding SEAFILE_SERVER_URL=secret:workspace:seafile_server_url --secret-binding SEAFILE_API_TOKEN=secret:workspace:seafile_api_token`.
+  Sandboxes: `secrets=` / `header_bindings=` — values are injected at runtime.
+  With `worker_env=True` the runtime can read them by design — the rule is
+  **never commit values to source or logs**, not "never reach code".
 - `register_connector.py` reads `SEAFILE_SERVER_URL` / `SEAFILE_API_TOKEN` from the
   environment; locally export them from your secret store, never commit them.
 
