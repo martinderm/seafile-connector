@@ -1,0 +1,8 @@
+{
+  "protocol": "http",
+  "name": "seafile",
+  "title": "Seafile",
+  "description": "Seafile REST API (curated OpenAPI subset: libraries, dir listings, file details, download/upload links, search, trash) for the cloud-atlas read path",
+  "server": "https://seafile.example.org",
+  "visibility": "private"
+}
