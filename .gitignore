@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.env
+.env.*
+*.token
+*.key
+seafile_api_token*
+filemap*.json
+!tests/fixtures/**
