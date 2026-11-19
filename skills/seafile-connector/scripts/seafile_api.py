@@ -136,7 +136,7 @@ class SeafileClient:
                              params={"page": page, "per_page": per_page})
 
     def list_shared_repos(self):
-        return self._request("GET", "/api2/shared-repos/")
+        return self._request("GET", "/api2/beshared-repos/")
 
     def _download_url(self, repo_id: str, path: str) -> str:
         link = self.get_download_link(repo_id, path)

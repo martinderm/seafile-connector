@@ -159,11 +159,11 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/TrashEntry"}
-  /api2/shared-repos/:
+  /api2/beshared-repos/:
     get:
       operationId: list_shared_repos
       tags: [seafile]
-      summary: List libraries shared with the account (owner in `user`, `share_type` personal/group, `permission` r/rw)
+      summary: List libraries shared with the account (documented route /api2/beshared-repos/; owner in `user`, `share_type` personal/group, `permission` r/rw)
       responses:
         "200":
           description: Array of shared libraries
@@ -278,7 +278,7 @@ components:
         permission: {type: string, enum: [r, rw]}
         is_shared: {type: boolean}
         size: {type: integer}
-        last_modify: {type: integer}
+        last_modified: {type: integer, description: unix timestamp of last modification (API key is `last_modified`)}
         encrypted: {type: boolean}
       additionalProperties: true
     SearchHit:

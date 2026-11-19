@@ -147,7 +147,7 @@ class ClientTest(unittest.TestCase):
                                return_value=FakeResponse([])) as m:
             client.list_shared_repos()
         self.assertEqual(m.call_args[0][0].full_url,
-                         "https://seafile.example.org/api2/shared-repos/")
+                         "https://seafile.example.org/api2/beshared-repos/")
 
     def test_walk_recursion_builds_paths(self):
         client = make_client()
