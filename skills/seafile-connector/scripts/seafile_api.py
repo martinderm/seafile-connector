@@ -208,9 +208,14 @@ class SeafileClient:
     def get_zip_task(self, repo_id: str, parent_dir: str = "/",
                      dirents=None):
         """Start an async server-side zip job (side-effecting GET, not a plain
-        read). `dirents` is a list of item names or a comma-separated string."""
+        read). `dirents` is required: a list of item names or a comma-separated
+        string, e.g. ["my_dir"] or "a.md,b.pdf"."""
         if isinstance(dirents, (list, tuple)):
             dirents = ",".join(dirents)
+        if not dirents:
+            raise SeafileError(
+                "dirents is required for zip-task (names of the items to "
+                "archive, comma-separated) — refusing to send an invalid request")
         return self._request("GET", f"/api/v2.1/repos/{repo_id}/zip-task/",
                              params={"parent_dir": parent_dir, "dirents": dirents})
 

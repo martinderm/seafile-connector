@@ -201,6 +201,15 @@ class ClientTest(unittest.TestCase):
             self.assertEqual(m.call_args[0][0].full_url,
                              "https://seafile.example.org" + suffix)
 
+    def test_zip_task_rejects_missing_dirents_locally(self):
+        client = make_client()
+        with mock.patch.object(seafile_api.urllib.request, "urlopen") as m:
+            with self.assertRaises(seafile_api.SeafileError):
+                client.get_zip_task("r1")
+            with self.assertRaises(seafile_api.SeafileError):
+                client.get_zip_task("r1", dirents="")
+        m.assert_not_called()
+
     def test_cli_extended_command_with_mocked_client(self):
         with mock.patch.object(seafile_api, "SeafileClient") as cls, \
              mock.patch.dict(os.environ, {"SEAFILE_SERVER_URL": "https://x",
