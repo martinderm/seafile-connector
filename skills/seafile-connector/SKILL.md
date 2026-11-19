@@ -94,16 +94,16 @@ OpenAPI/HTTP-connector import — that is why the script exists.
   a document library, not the sandbox filesystem.
 - Large files: cap downloads (`--out` to disk) and chunk processing.
 
-## Mistral Studio/Work setup (not part of this skill)
+## Platform connector setup (platform-specific — not part of this skill)
 
-In Studio/Work prefer the **HTTP connector** (no MCP server): protocol
-`http`, server URL = Seafile root, API-key auth with header `Authorization`
-= `Token <api-token>`, import `spec/seafile-openapi.yaml` from the repo (or
-the official https://github.com/haiwen/seafile-open-api spec), then toggle
-tools (read on, write on manual approval) and test in the Connectors
-Debugger with `list_repos`. Several Seafile accounts = several named
-credentials (`credentials_name`). See `adapters/mistral/README.md` in the
-repo for the full step-by-step guide and API automation.
+To use Seafile as ready-made tools (chats/agents/workflows, e.g. in Mistral
+Studio/Work where the code interpreter has no network), register an HTTP
+connector for the Seafile server root with API-token auth
+(`Authorization: Token <api-token>`) and import the OpenAPI spec from this
+repo (`spec/seafile-openapi.yaml`) or the official
+https://github.com/haiwen/seafile-open-api spec. Platform-specific setup
+steps (UI labels, credentials, visibility, approvals) live in
+`adapters/mistral/README.md` in the repo — this skill stays platform-neutral.
 
 ## References
 

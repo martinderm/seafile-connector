@@ -37,7 +37,7 @@ Cloud-Atlas-Grobkonzept, Porting-Analyse) and the library **„Knowledge Base“
 ```
 
 **Primary path in Studio/Work: HTTP connector** (protocol `http`, server URL =
-Seafile root, API-key auth `Authorization: Token <api-token>`, OpenAPI spec
+Seafile root, auth „benutzerdefiniert“ (custom header `Authorization: Token <api-token>`), OpenAPI spec
 imported from `spec/`) — no own MCP server, no hosting, one tool per
 operation. **Fallback:** community MCP server (e.g. virtUOS/seafile-mcp) for
 operations the import skips (multipart upload, share links). **Skill

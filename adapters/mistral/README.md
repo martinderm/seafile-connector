@@ -23,8 +23,42 @@ links).
   the separate `/api/v2.1/via-repo-token/…` routes, which are not part of
   this spec (can be added as a second spec/connector later). Use a
   least-privilege account.
-- Store the token in the **Mistral Secrets Manager** — never in the spec,
-  skill, scripts, or repo.
+- The connector credential (the token as a benutzerdefiniert header) is stored
+  **by the Connectors Gateway** — per the Mistral docs, "a connector's token
+  never leaves the Connectors Gateway", and you should *not* also declare it as
+  an agent `secret`. Never in the spec, skill, scripts, or repo.
+
+## Secrets convention (repo stays example-only)
+
+The repo only contains **generic example values** (`https://seafile.example.org`,
+placeholders) — real values never go into git. There are **two runtime stores**,
+for two different paths:
+
+1. **Connector credential (Connectors Gateway)** — for the Studio/Work HTTP
+   connector. Enter the token once as the benutzerdefiniert custom header
+   (`Authorization: Token <…>`) on the connector's credential; the gateway
+   stores it and it never reaches the model, session, logs, or repo. Optional:
+   mark the credential **shared with the workspace** (`credentials_name`,
+   `run_as="deployment"` in agents) so one key serves the whole workspace.
+2. **Workspace secrets (Secrets Manager)** — for the **script/skill/agent
+   path** (`seafile_api.py`, sandboxes, `register_connector.py`). Referenced
+   **by name only**, never by value in code/config (secret names are normalized
+   to lowercase):
+
+| Secret name (example) | Value (entered only in Secrets Manager) | Bound as |
+|---|---|---|
+| `seafile_server_url` | real Seafile root, e.g. `https://…` | `SEAFILE_SERVER_URL` (scripts/agents only — the connector's server URL is part of the connector definition and is set directly on the connector, not via a secret) |
+| `seafile_api_token` | Seafile account API token | `SEAFILE_API_TOKEN` (scripts/agents) |
+
+- Agents (Agents SDK) — values must be `MistralSecret` references, not bare
+  strings, and both variables the scripts need must be bound:
+  `secrets={"SEAFILE_SERVER_URL": agents.MistralSecret.workspace("seafile_server_url", worker_env=True), "SEAFILE_API_TOKEN": agents.MistralSecret.workspace("seafile_api_token", worker_env=True)}`
+  or on deploy: `agents deploy --secret-binding SEAFILE_SERVER_URL=secret:workspace:seafile_server_url --secret-binding SEAFILE_API_TOKEN=secret:workspace:seafile_api_token`.
+  Sandboxes: `secrets=` / `header_bindings=` — values are injected at runtime.
+  With `worker_env=True` the runtime can read them by design — the rule is
+  **never commit values to source or logs**, not "never reach code".
+- `register_connector.py` reads `SEAFILE_SERVER_URL` / `SEAFILE_API_TOKEN` from the
+  environment; locally export them from your secret store, never commit them.
 
 ## Setup in Studio/Work (UI)
 
@@ -32,9 +66,12 @@ links).
 2. Protocol **`http`**, server URL = Seafile server root
    (e.g. `https://seafile.example.org`; the API hangs off the root:
    `/api2/…`, `/api/v2.1/…`).
-3. Auth = **API key**: header name `Authorization`, value
-   `Token <api-token>` (Seafile token scheme; `Bearer <token>` also works on
-   Seafile ≥ 11). Not OAuth — Seafile SSO protects the web UI, not the API.
+3. Auth = **„benutzerdefiniert“** (custom header; in Studio's HTTP-connector
+   dialog the same option is shown as *API key* — key name + value). Set
+   header name `Authorization`, value `Token <api-token>` (Seafile token
+   scheme; `Bearer <token>` also works on Seafile ≥ 11). The only auth
+   choices are **benutzerdefiniert / OAuth / keine** — use benutzerdefiniert,
+   not OAuth: Seafile SSO protects the web UI, not the API.
 4. Import the OpenAPI spec on the connector page: upload
    `spec/seafile-openapi.yaml` from this repo, or use the public URL of the
    official spec https://github.com/haiwen/seafile-open-api (raw). The URL
