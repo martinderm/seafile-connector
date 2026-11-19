@@ -45,6 +45,8 @@ export SEAFILE_SERVER_URL="https://seafile.example.org"
 export SEAFILE_API_TOKEN="..."
 
 python3 scripts/seafile_api.py repos                          # list libraries
+python3 scripts/seafile_api.py beshared                       # libraries shared WITH this account (/api2/beshared-repos/)
+python3 scripts/seafile_api.py shared                         # libraries this account shared with others (/api2/shared-repos/)
 python3 scripts/seafile_api.py repo <repo_id>                 # library detail
 python3 scripts/seafile_api.py ls <repo_id> --path /docs/     # directory listing
 python3 scripts/seafile_api.py ls <repo_id> --recursive       # recursive listing
