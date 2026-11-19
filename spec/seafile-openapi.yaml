@@ -159,6 +159,19 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/TrashEntry"}
+  /api2/shared-repos/:
+    get:
+      operationId: list_shared_repos
+      tags: [seafile]
+      summary: List libraries shared with the account (owner in `user`, `share_type` personal/group, `permission` r/rw)
+      responses:
+        "200":
+          description: Array of shared libraries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/SharedRepo"}
   /api2/search/:
     get:
       operationId: search_files
@@ -251,6 +264,22 @@ components:
         parent_dir: {type: string}
         obj_name: {type: string}
         deleted_time: {type: integer}
+      additionalProperties: true
+    SharedRepo:
+      type: object
+      properties:
+        id: {type: string}
+        name: {type: string}
+        repo_id: {type: string}
+        repo_name: {type: string}
+        user: {type: string, description: owner/sharer of the library}
+        share_type: {type: string, enum: [personal, group]}
+        group_id: {type: integer}
+        permission: {type: string, enum: [r, rw]}
+        is_shared: {type: boolean}
+        size: {type: integer}
+        last_modify: {type: integer}
+        encrypted: {type: boolean}
       additionalProperties: true
     SearchHit:
       type: object

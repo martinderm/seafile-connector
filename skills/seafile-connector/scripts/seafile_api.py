@@ -135,6 +135,9 @@ class SeafileClient:
         return self._request("GET", f"/api2/repos/{repo_id}/trash/",
                              params={"page": page, "per_page": per_page})
 
+    def list_shared_repos(self):
+        return self._request("GET", "/api2/shared-repos/")
+
     def _download_url(self, repo_id: str, path: str) -> str:
         link = self.get_download_link(repo_id, path)
         url = link.get("download_link") if isinstance(link, dict) else link
@@ -305,6 +308,8 @@ def main(argv=None) -> None:
     p.add_argument("--page", type=int, default=1)
     p.add_argument("--per-page", type=int, default=100)
 
+    p = sub.add_parser("shared", help="list libraries shared with this account")
+
     p = sub.add_parser("trash", help="list trash of a library")
     p.add_argument("repo_id")
     p.add_argument("--page", type=int, default=1)
@@ -349,6 +354,8 @@ def main(argv=None) -> None:
     elif args.command == "search":
         _emit(client.search_files(args.query, repo_id=args.repo_id,
                                   page=args.page, per_page=args.per_page), args.compact)
+    elif args.command == "shared":
+        _emit(client.list_shared_repos(), args.compact)
     elif args.command == "trash":
         _emit(client.list_trash(args.repo_id, page=args.page, per_page=args.per_page), args.compact)
     elif args.command == "upload-link":
