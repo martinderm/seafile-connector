@@ -26,6 +26,25 @@ links).
 - Store the token in the **Mistral Secrets Manager** — never in the spec,
   skill, scripts, or repo.
 
+## Secrets convention (repo stays example-only)
+
+The repo only contains **generic example values** (`https://seafile.example.org`,
+placeholders) — real values never go into git. At runtime they live as
+**workspace secrets** in the Mistral Secrets Manager, next to the connector
+credentials (secret names are normalized to lowercase, e.g.):
+
+| Secret name (example) | Value | Used for |
+|---|---|---|
+| `seafile_server_url` | `https://…` (real Seafile root, entered only in Secrets Manager) | connector server URL (UI), `SEAFILE_SERVER_URL` in scripts |
+| `seafile_api_token` | Seafile account API token | credential header `Authorization: Token …`, `SEAFILE_API_TOKEN` in scripts |
+
+- Studio/Work UI: enter server URL and API-key credential from the secrets
+  (the connector page / Secrets Manager), not from the repo.
+- Agents/sandboxes: bind them via `secrets={"SEAFILE_SERVER_URL": "seafile_server_url",
+  "SEAFILE_API_TOKEN": "seafile_api_token"}` — values never reach code, logs, or git.
+- `register_connector.py` reads `SEAFILE_SERVER_URL` / `SEAFILE_API_TOKEN` from the
+  environment; locally export them from your secret store, never commit them.
+
 ## Setup in Studio/Work (UI)
 
 1. Studio/Work → **Connectors → + Add connector → Add a custom connector**.
