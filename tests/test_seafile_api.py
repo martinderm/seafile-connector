@@ -157,6 +157,68 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(m.call_args[0][0].full_url,
                          "https://seafile.example.org/api2/shared-repos/")
 
+    def test_extended_read_urls(self):
+        client = make_client()
+        cases = [
+            (lambda: client.get_account_info(), "/api2/account/info/"),
+            (lambda: client.get_server_info(), "/api2/server-info/"),
+            (lambda: client.get_default_repo(), "/api2/default-repo/"),
+            (lambda: client.list_starred_items(), "/api/v2.1/starred-items/"),
+            (lambda: client.list_shared_folders(), "/api/v2.1/shared-folders/"),
+            (lambda: client.list_share_links(), "/api/v2.1/share-links/"),
+            (lambda: client.list_repo_share_links("r1"),
+             "/api/v2.1/repos/r1/share-links/"),
+            (lambda: client.list_groups(), "/api2/groups/"),
+            (lambda: client.get_group(7), "/api/v2.1/groups/7/"),
+            (lambda: client.list_group_members(7), "/api/v2.1/groups/7/members/"),
+            (lambda: client.list_shared_items("r1", path="/d", share_type="group"),
+             "/api2/repos/r1/dir/shared_items/?p=%2Fd&share_type=group"),
+            (lambda: client.list_shared_items("r1"),
+             "/api2/repos/r1/dir/shared_items/?p=%2F"),
+            (lambda: client.get_dir_detail("r1", "/d"),
+             "/api/v2.1/repos/r1/dir/detail/?path=%2Fd"),
+            (lambda: client.get_file_history("r1", "/a.md", commit_id="c9"),
+             "/api/v2.1/repos/r1/file/history/?path=%2Fa.md&commit_id=c9"),
+            (lambda: client.get_file_history("r1", "/a.md"),
+             "/api/v2.1/repos/r1/file/history/?path=%2Fa.md"),
+            (lambda: client.get_file_revision_link("r1", "/a.md", "c1"),
+             "/api2/repos/r1/file/revision/?p=%2Fa.md&commit_id=c1"),
+            (lambda: client.get_repo_history("r1"),
+             "/api/v2.1/repos/r1/history/?page=1&per_page=100"),
+            (lambda: client.get_smart_link("r1", "/a.md"),
+             "/api/v2.1/smart-link/?repo_id=r1&path=%2Fa.md&is_dir=false"),
+            (lambda: client.get_smart_link("r1", "/d", is_dir=True),
+             "/api/v2.1/smart-link/?repo_id=r1&path=%2Fd&is_dir=true"),
+            (lambda: client.get_zip_task("r1", parent_dir="/", dirents=["a.md", "b"]),
+             "/api/v2.1/repos/r1/zip-task/?parent_dir=%2F&dirents=a.md%2Cb"),
+            (lambda: client.get_zip_progress("tok"),
+             "/api/v2.1/query-zip-progress/?token=tok"),
+        ]
+        for fn, suffix in cases:
+            with mock.patch.object(seafile_api.urllib.request, "urlopen",
+                                   return_value=FakeResponse({})) as m:
+                fn()
+            self.assertEqual(m.call_args[0][0].full_url,
+                             "https://seafile.example.org" + suffix)
+
+    def test_zip_task_rejects_missing_dirents_locally(self):
+        client = make_client()
+        with mock.patch.object(seafile_api.urllib.request, "urlopen") as m:
+            with self.assertRaises(seafile_api.SeafileError):
+                client.get_zip_task("r1")
+            with self.assertRaises(seafile_api.SeafileError):
+                client.get_zip_task("r1", dirents="")
+        m.assert_not_called()
+
+    def test_cli_extended_command_with_mocked_client(self):
+        with mock.patch.object(seafile_api, "SeafileClient") as cls, \
+             mock.patch.dict(os.environ, {"SEAFILE_SERVER_URL": "https://x",
+                                          "SEAFILE_API_TOKEN": "t"}):
+            cls.return_value.get_account_info.return_value = {"usage": 5}
+            with mock.patch("sys.stdout", new=io.StringIO()) as out:
+                seafile_api.main(["account-info"])
+            self.assertIn('"usage": 5', out.getvalue())
+
     def test_walk_recursion_builds_paths(self):
         client = make_client()
         listing = {
