@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  title: Seafile Web API (curated subset for the Seafile connector)
+  version: api2-curated.1
+  description: |
+    Curated subset of the official Seafile OpenAPI spec
+    (https://github.com/haiwen/seafile-open-api — docs:
+    https://manual.seafile.com/latest/develop/web_api_v2.1/) covering the
+    cloud-atlas read path: libraries, directory listings (with mtime/size for
+    change detection), file details, download/upload links, search, trash.
+
+    All routes use the classic **account API** (`/api2/...`), which requires
+    an account token. Repo-scoped library tokens use the separate
+    `/api/v2.1/via-repo-token/...` API and are not covered by this spec.
+
+    Upload itself is a multipart POST to the upload link and is typically NOT
+    converted by an OpenAPI import — use the portable skill scripts or an MCP
+    fallback for uploads.
+
+    Auth: Seafile API token. In Mistral Studio/Work use the HTTP connector's
+    API-key mode with header `Authorization` and value `Token <api-token>`
+    (Seafile token scheme; `Bearer <token>` is also accepted on Seafile >= 11).
+    The account API (`/api2/...`) requires an account token; library tokens
+    cannot be used with these routes.
+
+    Generate the token in the Seafile web UI (Avatar → Settings → API Token);
+    store it in the Mistral Secrets Manager, never in this file or the repo.
+servers:
+  - url: https://seafile.example.org
+    description: Seafile server root. Overridden by the connector's server URL.
+tags:
+  - name: seafile
+    description: Seafile REST API v2.1
+security:
+  - tokenAuth: []
+paths:
+  /api2/repos/:
+    get:
+      operationId: list_repos
+      tags: [seafile]
+      summary: List libraries (repos) visible to the token's account
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, default: 1}
+        - name: per_page
+          in: query
+          schema: {type: integer, default: 100, maximum: 1000}
+      responses:
+        "200":
+          description: Array of repositories
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Repo"}
+  /api2/repos/{repo_id}/:
+    get:
+      operationId: get_repo
+      tags: [seafile]
+      summary: Get details of one library
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+      responses:
+        "200":
+          description: Repository details
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Repo"}
+  /api2/repos/{repo_id}/dir/:
+    get:
+      operationId: list_dir
+      tags: [seafile]
+      summary: List a directory (entries include type, size, mtime, id — basis for filemap change detection)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          description: Directory path inside the repo, e.g. `/` or `/docs/`
+          schema: {type: string, default: "/"}
+      responses:
+        "200":
+          description: Array of directory entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/DirEntry"}
+  /api2/repos/{repo_id}/file/detail/:
+    get:
+      operationId: get_file_detail
+      tags: [seafile]
+      summary: Get file metadata/detail for a path (NOT the content/download endpoint)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          required: true
+          description: File path inside the repo
+          schema: {type: string}
+      responses:
+        "200":
+          description: File detail
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/FileDetail"}
+  /api2/repos/{repo_id}/download-link/:
+    get:
+      operationId: get_download_link
+      tags: [seafile]
+      summary: Get a download link for a file (binary downloads may only yield links/metadata through an HTTP connector)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Download link payload
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LinkResponse"}
+  /api2/repos/{repo_id}/upload-link/:
+    get:
+      operationId: get_upload_link
+      tags: [seafile]
+      summary: Get an upload link (write operation — keep on manual approval; the multipart POST itself is usually not importable)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          description: Target directory path, e.g. `/docs/`
+          schema: {type: string, default: "/"}
+      responses:
+        "200":
+          description: Upload link payload
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LinkResponse"}
+  /api2/repos/{repo_id}/trash/:
+    get:
+      operationId: list_trash
+      tags: [seafile]
+      summary: List deleted items (trash) of a library
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: page
+          in: query
+          schema: {type: integer, default: 1}
+        - name: per_page
+          in: query
+          schema: {type: integer, default: 100, maximum: 1000}
+      responses:
+        "200":
+          description: Array of trash entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/TrashEntry"}
+  /api2/search/:
+    get:
+      operationId: search_files
+      tags: [seafile]
+      summary: Search files across libraries (account API — requires an account token)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: {type: string}
+        - name: search_repo
+          in: query
+          required: true
+          description: Library UUID to search in (Seafile's filter parameter is `search_repo`, not `repo_id`)
+          schema: {type: string}
+        - name: page
+          in: query
+          schema: {type: integer, default: 1}
+        - name: per_page
+          in: query
+          schema: {type: integer, default: 100, maximum: 1000}
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items: {$ref: "#/components/schemas/SearchHit"}
+components:
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        Seafile API token, sent verbatim in the Authorization header as
+        `Token <api-token>` (Seafile token scheme; `Bearer <token>` is only
+        accepted on Seafile >= 11). In Mistral Studio/Work configure the
+        HTTP connector's API-key auth with header name `Authorization` and
+        value `Token <api-token>`.
+  parameters:
+    RepoId:
+      name: repo_id
+      in: path
+      required: true
+      description: Library (repo) ID, a UUID
+      schema: {type: string}
+  schemas:
+    Repo:
+      type: object
+      properties:
+        id: {type: string}
+        name: {type: string}
+        size: {type: integer}
+        encrypted: {type: boolean}
+        permission: {type: string}
+        mtime: {type: integer}
+      additionalProperties: true
+    DirEntry:
+      type: object
+      properties:
+        type: {type: string, enum: [file, dir]}
+        name: {type: string}
+        id: {type: string, description: object id (oid)}
+        size: {type: integer}
+        mtime: {type: integer, description: unix timestamp of last modification}
+      additionalProperties: true
+    FileDetail:
+      type: object
+      properties:
+        type: {type: string}
+        name: {type: string}
+        id: {type: string}
+        size: {type: integer}
+        mtime: {type: integer}
+        download_url: {type: string}
+      additionalProperties: true
+    LinkResponse:
+      type: string
+      format: uri
+      description: The Seafile link endpoints return the link as a plain URI string.
+    TrashEntry:
+      type: object
+      properties:
+        repo_id: {type: string}
+        parent_dir: {type: string}
+        obj_name: {type: string}
+        deleted_time: {type: integer}
+      additionalProperties: true
+    SearchHit:
+      type: object
+      properties:
+        repo_id: {type: string}
+        repo_name: {type: string}
+        path: {type: string}
+        name: {type: string}
+        size: {type: integer}
+        mtime: {type: integer}
+        score: {type: number}
+      additionalProperties: true
