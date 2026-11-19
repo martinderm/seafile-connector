@@ -141,13 +141,21 @@ class ClientTest(unittest.TestCase):
             with self.assertRaises(seafile_api.SeafileError):
                 client.upload_file("r1", "/docs/", "a.md", b"x")
 
+    def test_list_beshared_repos_url(self):
+        client = make_client()
+        with mock.patch.object(seafile_api.urllib.request, "urlopen",
+                               return_value=FakeResponse([])) as m:
+            client.list_beshared_repos()
+        self.assertEqual(m.call_args[0][0].full_url,
+                         "https://seafile.example.org/api2/beshared-repos/")
+
     def test_list_shared_repos_url(self):
         client = make_client()
         with mock.patch.object(seafile_api.urllib.request, "urlopen",
                                return_value=FakeResponse([])) as m:
             client.list_shared_repos()
         self.assertEqual(m.call_args[0][0].full_url,
-                         "https://seafile.example.org/api2/beshared-repos/")
+                         "https://seafile.example.org/api2/shared-repos/")
 
     def test_walk_recursion_builds_paths(self):
         client = make_client()

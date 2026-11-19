@@ -161,9 +161,22 @@ paths:
                 items: {$ref: "#/components/schemas/TrashEntry"}
   /api2/beshared-repos/:
     get:
+      operationId: list_beshared_repos
+      tags: [seafile]
+      summary: List libraries shared WITH this account ("shared to me"; documented route /api2/beshared-repos/ — sharer in `user`, `share_type` personal/group, `permission` r/rw)
+      responses:
+        "200":
+          description: Array of shared-in libraries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/SharedRepo"}
+  /api2/shared-repos/:
+    get:
       operationId: list_shared_repos
       tags: [seafile]
-      summary: List libraries shared with the account (documented route /api2/beshared-repos/; owner in `user`, `share_type` personal/group, `permission` r/rw)
+      summary: List libraries this account shared with OTHERS ("shared by me"; route /api2/shared-repos/)
       responses:
         "200":
           description: Array of shared libraries
