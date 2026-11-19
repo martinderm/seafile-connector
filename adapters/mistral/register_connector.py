@@ -110,7 +110,7 @@ def main(argv=None) -> None:
                         choices=["private", "shared_workspace", "shared_org"])
     parser.add_argument("--description", default=DEFAULT_DESCRIPTION)
     parser.add_argument("--consumer-scope", default="user",
-                        choices=["user", "workspace", "org"],
+                        choices=["user", "workspace", "organization"],
                         help="scope of the credential (default: user)")
     parser.add_argument("--credential-name", default="seafile-default",
                         help="name of the named credential (default: seafile-default)")
@@ -131,8 +131,8 @@ def main(argv=None) -> None:
     print("POST /v1/connectors")
     print(json.dumps(redact(connector_payload, seafile_token), indent=2))
     if credentials_payload:
-        print(f"POST /v1/connectors/{{id}}/credentials (name={args.credential_name!r}, "
-              f"consumer_scope={args.consumer_scope!r})")
+        print(f"POST /v1/connectors/{{id}}/{args.consumer_scope}/credentials "
+              f"(name={args.credential_name!r})")
         print(json.dumps(redact(credentials_payload, seafile_token), indent=2))
     else:
         print("(no SEAFILE_API_TOKEN set — credential creation skipped)")
@@ -155,8 +155,10 @@ def main(argv=None) -> None:
     connector = api_request(api_key, "POST", "/connectors", connector_payload)
     connector_id = connector.get("id") or connector.get("name")
     print(f"created connector: id={connector.get('id')} name={connector.get('name')}")
-    cred = api_request(api_key, "POST", f"/connectors/{connector_id}/credentials",
-                       credentials_payload)
+    cred = api_request(
+        api_key, "POST",
+        f"/connectors/{connector_id}/{args.consumer_scope}/credentials",
+        credentials_payload)
     print(f"created credential: {json.dumps(redact(cred, seafile_token), indent=2)}")
 
 

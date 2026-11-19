@@ -171,7 +171,8 @@ paths:
           schema: {type: string}
         - name: repo_id
           in: query
-          description: Restrict search to one library (optional)
+          required: true
+          description: Library to search in (required by the search endpoint)
           schema: {type: string}
         - name: page
           in: query

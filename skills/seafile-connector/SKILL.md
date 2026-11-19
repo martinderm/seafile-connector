@@ -50,7 +50,7 @@ python3 scripts/seafile_api.py ls <repo_id> --path /docs/     # directory listin
 python3 scripts/seafile_api.py ls <repo_id> --recursive       # recursive listing
 python3 scripts/seafile_api.py file <repo_id> --path /a.md    # file detail
 python3 scripts/seafile_api.py download <repo_id> --path /a.md --out a.md
-python3 scripts/seafile_api.py search "report" --repo-id <repo_id>   # account token only
+python3 scripts/seafile_api.py search "report" --repo-id <repo_id>   # repo-scoped; account token
 python3 scripts/seafile_api.py trash <repo_id>                # trash listing
 python3 scripts/seafile_api.py upload-link <repo_id> --path /docs/   # write op
 python3 scripts/seafile_api.py upload <repo_id> --path /docs/ --file local.pdf   # write op

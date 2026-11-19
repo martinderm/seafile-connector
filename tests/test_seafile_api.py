@@ -17,8 +17,12 @@ class FakeResponse:
         self.payload = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
         self.status = status
 
-    def read(self):
-        return self.payload
+    def read(self, n=-1):
+        if n is None or n < 0:
+            data, self.payload = self.payload, b""
+            return data
+        data, self.payload = self.payload[:n], self.payload[n:]
+        return data
 
     def __enter__(self):
         return self
@@ -102,6 +106,40 @@ class ClientTest(unittest.TestCase):
         self.assertIn(b'name="parent_dir"', req.data)
         self.assertIn(b"/docs/", req.data)
         self.assertIn(b'name="file"; filename="a.md"', req.data)
+
+    def test_download_file_to_streams_to_disk(self):
+        import tempfile
+        client = make_client()
+        link = "https://seafile.example.org/d/abc123/?p=/big.bin"
+        with mock.patch.object(seafile_api.SeafileClient, "get_download_link",
+                               return_value=link), \
+             mock.patch.object(seafile_api.urllib.request, "urlopen",
+                               return_value=FakeResponse(b"chunk1chunk2")) as m:
+            with tempfile.TemporaryDirectory() as tmp:
+                out = os.path.join(tmp, "big.bin")
+                written = client.download_file_to("r1", "/big.bin", out)
+                with open(out, "rb") as fh:
+                    self.assertEqual(fh.read(), b"chunk1chunk2")
+        self.assertEqual(written, 12)
+        self.assertEqual(m.call_args[0][0].full_url, link)
+
+    def test_search_requires_repo_id_in_url(self):
+        client = make_client()
+        with mock.patch.object(seafile_api.urllib.request, "urlopen",
+                               return_value=FakeResponse({"results": []})) as m:
+            client.search_files("report", repo_id="r1")
+        self.assertEqual(
+            m.call_args[0][0].full_url,
+            "https://seafile.example.org/api2/search/?q=report&repo_id=r1&page=1&per_page=100")
+
+    def test_upload_connection_error_becomes_seafile_error(self):
+        client = make_client()
+        with mock.patch.object(seafile_api.SeafileClient, "get_upload_link",
+                               return_value={"upload_link": "https://seafile.example.org/upload/xyz"}), \
+             mock.patch.object(seafile_api.urllib.request, "urlopen",
+                               side_effect=seafile_api.urllib.error.URLError("dns")):
+            with self.assertRaises(seafile_api.SeafileError):
+                client.upload_file("r1", "/docs/", "a.md", b"x")
 
     def test_walk_recursion_builds_paths(self):
         client = make_client()

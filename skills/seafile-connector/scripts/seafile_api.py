@@ -66,8 +66,8 @@ class SeafileClient:
         else:
             self.auth_header = f"Token {token}"
 
-    def _request(self, method: str, path: str, params: dict | None = None,
-                 raw: bool = False, extra_headers: dict | None = None):
+    def _open(self, method: str, path: str, params: dict | None = None,
+              data: bytes | None = None, extra_headers: dict | None = None):
         if path.startswith(("http://", "https://")):
             url = path
         else:
@@ -83,14 +83,18 @@ class SeafileClient:
         }
         if extra_headers:
             headers.update(extra_headers)
-        req = urllib.request.Request(url, headers=headers, method=method)
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                payload = resp.read()
+            return urllib.request.urlopen(req, timeout=self.timeout)
         except urllib.error.HTTPError as exc:
             raise SeafileAPIError(exc.code, exc.read().decode("utf-8", "replace"), url) from exc
         except urllib.error.URLError as exc:
             raise SeafileError(f"connection failed for {url}: {exc.reason}") from exc
+
+    def _request(self, method: str, path: str, params: dict | None = None,
+                 raw: bool = False, extra_headers: dict | None = None):
+        with self._open(method, path, params=params, extra_headers=extra_headers) as resp:
+            payload = resp.read()
         if raw:
             return payload
         if not payload:
@@ -121,7 +125,7 @@ class SeafileClient:
         return self._request("GET", f"/api2/repos/{repo_id}/upload-link/",
                              params={"p": path})
 
-    def search_files(self, query: str, repo_id: str | None = None,
+    def search_files(self, query: str, repo_id: str,
                      page: int = 1, per_page: int = 100):
         return self._request("GET", "/api2/search/",
                              params={"q": query, "repo_id": repo_id,
@@ -131,17 +135,39 @@ class SeafileClient:
         return self._request("GET", f"/api2/repos/{repo_id}/trash/",
                              params={"page": page, "per_page": per_page})
 
-    def download_file(self, repo_id: str, path: str) -> bytes:
+    def _download_url(self, repo_id: str, path: str) -> str:
         link = self.get_download_link(repo_id, path)
         url = link.get("download_link") if isinstance(link, dict) else link
         if not url:
             raise SeafileError("no download link returned in server response")
         if url.startswith("/"):
             url = self.base_url + url
+        return url
+
+    def download_file(self, repo_id: str, path: str) -> bytes:
+        url = self._download_url(repo_id, path)
         try:
-            return self._request("GET", url, raw=True)
+            with self._open("GET", url) as resp:
+                return resp.read()
         except SeafileAPIError as exc:
             raise SeafileAPIError(exc.status, exc.body, "<download-url>") from exc
+
+    def download_file_to(self, repo_id: str, path: str, out_path: str,
+                         chunk_size: int = 1 << 20) -> int:
+        """Stream a download to disk (bounded memory); returns bytes written."""
+        url = self._download_url(repo_id, path)
+        written = 0
+        try:
+            with self._open("GET", url) as resp, open(out_path, "wb") as fh:
+                while True:
+                    chunk = resp.read(chunk_size)
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+                    written += len(chunk)
+        except SeafileAPIError as exc:
+            raise SeafileAPIError(exc.status, exc.body, "<download-url>") from exc
+        return written
 
     # ---- write path (secondary; keep behind manual approval) ----------
 
@@ -158,22 +184,15 @@ class SeafileClient:
             + data + b"\r\n",
             f"--{boundary}--\r\n".encode(),
         ])
-        req = urllib.request.Request(
-            upload_url,
-            data=body,
-            headers={
-                "Authorization": self.auth_header,
-                "Content-Type": f"multipart/form-data; boundary={boundary}",
-                "User-Agent": USER_AGENT,
-            },
-            method="POST",
-        )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with self._open("POST", upload_url, data=body,
+                            extra_headers={"Content-Type":
+                                           f"multipart/form-data; boundary={boundary}"}) as resp:
                 return resp.read().decode("utf-8", "replace")
-        except urllib.error.HTTPError as exc:
-            raise SeafileAPIError(exc.code, exc.read().decode("utf-8", "replace"),
-                                  "<upload-url>") from exc
+        except SeafileAPIError as exc:
+            if exc.url == upload_url:
+                raise SeafileAPIError(exc.status, exc.body, "<upload-url>") from exc
+            raise
 
     # ---- recursive listing / filemap -----------------------------------
 
@@ -280,9 +299,9 @@ def main(argv=None) -> None:
     p.add_argument("--path", required=True)
     p.add_argument("--out", help="output file (default: basename in cwd)")
 
-    p = sub.add_parser("search", help="search files (requires an account token)")
+    p = sub.add_parser("search", help="search files (account token; repo-scoped)")
     p.add_argument("query")
-    p.add_argument("--repo-id", default=None)
+    p.add_argument("--repo-id", required=True)
     p.add_argument("--page", type=int, default=1)
     p.add_argument("--per-page", type=int, default=100)
 
@@ -324,11 +343,9 @@ def main(argv=None) -> None:
     elif args.command == "file":
         _emit(client.get_file(args.repo_id, args.path), args.compact)
     elif args.command == "download":
-        data = client.download_file(args.repo_id, args.path)
         out = args.out or posixpath.basename(args.path.rstrip("/"))
-        with open(out, "wb") as fh:
-            fh.write(data)
-        _emit({"path": args.path, "out": out, "bytes": len(data)}, args.compact)
+        size = client.download_file_to(args.repo_id, args.path, out)
+        _emit({"path": args.path, "out": out, "bytes": size}, args.compact)
     elif args.command == "search":
         _emit(client.search_files(args.query, repo_id=args.repo_id,
                                   page=args.page, per_page=args.per_page), args.compact)
