@@ -184,6 +184,290 @@ paths:
               schema:
                 type: array
                 items: {$ref: "#/components/schemas/SharedRepo"}
+  /api2/account/info/:
+    get:
+      operationId: get_account_info
+      tags: [seafile]
+      summary: Account info (email, name, quota usage/total) — sanity check for the credential
+      responses:
+        "200":
+          description: Account info object
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api2/server-info/:
+    get:
+      operationId: get_server_info
+      tags: [seafile]
+      summary: Server version/features (anonymous health check)
+      responses:
+        "200":
+          description: Server info object (version, features)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api2/default-repo/:
+    get:
+      operationId: get_default_repo
+      tags: [seafile]
+      summary: Default library of the account
+      responses:
+        "200":
+          description: Default repo object
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/starred-items/:
+    get:
+      operationId: list_starred_items
+      tags: [seafile]
+      summary: Starred (favorite) libraries/folders/files of the account
+      responses:
+        "200":
+          description: Object with `starred_item_list` array
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/shared-folders/:
+    get:
+      operationId: list_shared_folders
+      tags: [seafile]
+      summary: Folders shared with this account (by others)
+      responses:
+        "200":
+          description: Array of shared folders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/share-links/:
+    get:
+      operationId: list_share_links
+      tags: [seafile]
+      summary: All download share links of the account (all libraries)
+      responses:
+        "200":
+          description: Array of share links (token, link, permissions, view_cnt, expire_date)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/repos/{repo_id}/share-links/:
+    get:
+      operationId: list_repo_share_links
+      tags: [seafile]
+      summary: Share links of one library
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+      responses:
+        "200":
+          description: Array of share links
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LooseObject"}
+  /api2/groups/:
+    get:
+      operationId: list_groups
+      tags: [seafile]
+      summary: Groups of the account
+      responses:
+        "200":
+          description: Object with `groups` array
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/groups/{group_id}/:
+    get:
+      operationId: get_group
+      tags: [seafile]
+      summary: Details of one group
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema: {type: integer}
+      responses:
+        "200":
+          description: Group object
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/groups/{group_id}/members/:
+    get:
+      operationId: list_group_members
+      tags: [seafile]
+      summary: Members of a group (incl. admin/owner roles)
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema: {type: integer}
+      responses:
+        "200":
+          description: Array of group members
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LooseObject"}
+  /api2/repos/{repo_id}/dir/shared_items/:
+    get:
+      operationId: list_shared_items
+      tags: [seafile]
+      summary: With whom a library/folder is shared (share_type user/group, permission)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          schema: {type: string, default: "/"}
+        - name: share_type
+          in: query
+          description: Filter by share_type (user or group)
+          schema: {type: string}
+      responses:
+        "200":
+          description: Array of share entries (user_info/group_info, permission, is_admin)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/repos/{repo_id}/dir/detail/:
+    get:
+      operationId: get_dir_detail
+      tags: [seafile]
+      summary: Directory detail (incl. share/permission info)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Directory detail object
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/repos/{repo_id}/file/history/:
+    get:
+      operationId: get_file_history
+      tags: [seafile]
+      summary: Version history of a file (commit ids for revision download / change detection)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          required: true
+          schema: {type: string}
+        - name: page
+          in: query
+          schema: {type: integer, default: 1}
+        - name: per_page
+          in: query
+          schema: {type: integer, default: 100, maximum: 1000}
+      responses:
+        "200":
+          description: File history (commits) object
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api2/repos/{repo_id}/file/revision/:
+    get:
+      operationId: get_file_revision_link
+      tags: [seafile]
+      summary: Download link for a file at a given commit (revision)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          required: true
+          schema: {type: string}
+        - name: commit_id
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Download link for the revision
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LinkResponse"}
+  /api/v2.1/repos/{repo_id}/history/:
+    get:
+      operationId: get_repo_history
+      tags: [seafile]
+      summary: Commit history of a library (who/what/when, client, device)
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: page
+          in: query
+          schema: {type: integer, default: 1}
+        - name: per_page
+          in: query
+          schema: {type: integer, default: 100, maximum: 1000}
+      responses:
+        "200":
+          description: Object with `data` array of commits
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/smart-link/:
+    get:
+      operationId: get_smart_link
+      tags: [seafile]
+      summary: Stable smart link (permalink) for a file/folder — good for catalog references
+      parameters:
+        - name: repo_id
+          in: query
+          required: true
+          schema: {type: string}
+        - name: p
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Smart link object
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/repos/{repo_id}/zip-task/:
+    get:
+      operationId: get_zip_task
+      tags: [seafile]
+      summary: Start a zip task for a folder (bulk download); returns zip_token
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - name: p
+          in: query
+          schema: {type: string, default: "/"}
+      responses:
+        "200":
+          description: Zip task object (zip_token)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
+  /api/v2.1/query-zip-progress/:
+    get:
+      operationId: get_zip_progress
+      tags: [seafile]
+      summary: Progress of a zip task (by zip_token); includes the download link when done
+      parameters:
+        - name: zip_token
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Zip progress object
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LooseObject"}
   /api2/search/:
     get:
       operationId: search_files
@@ -234,6 +518,9 @@ components:
       description: Library (repo) ID, a UUID
       schema: {type: string}
   schemas:
+    LooseObject:
+      type: object
+      additionalProperties: true
     Repo:
       type: object
       properties:

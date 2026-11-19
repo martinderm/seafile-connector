@@ -3,12 +3,13 @@ name: seafile-connector
 description: >-
   Access a Seafile server through its REST API with portable, stdlib-only
   scripts: list libraries, browse directories, get file details, download
-  files, search (account token), list trash, and build filemap.json
-  inventories with change detection (mtime/size diff). Optional upload via
-  upload link. Use this skill wherever a Mistral Studio/Work HTTP connector
-  is not available (e.g. Work Web chats, whose code interpreter has no
-  network) or for scripted sync/filemap logic in any networked environment
-  (Vibe Code, Studio agent sandbox with network enabled).
+  files, search (account token), list trash, account/server info, starred
+  items, share links, groups, shared items, history and zip tasks, and build
+  filemap.json inventories with change detection (mtime/size diff). Optional
+  upload via upload link. Use this skill wherever a Mistral Studio/Work HTTP
+  connector is not available (e.g. Work Web chats, whose code interpreter
+  has no network) or for scripted sync/filemap logic in any networked
+  environment (Vibe Code, Studio agent sandbox with network enabled).
 ---
 
 # seafile-connector
@@ -47,6 +48,24 @@ export SEAFILE_API_TOKEN="..."
 python3 scripts/seafile_api.py repos                          # list libraries
 python3 scripts/seafile_api.py beshared                       # libraries shared WITH this account (/api2/beshared-repos/)
 python3 scripts/seafile_api.py shared                         # libraries this account shared with others (/api2/shared-repos/)
+python3 scripts/seafile_api.py account-info                   # account info (/api2/account/info/)
+python3 scripts/seafile_api.py server-info                    # server version/config (/api2/server-info/)
+python3 scripts/seafile_api.py default-repo                   # default library (/api2/default-repo/)
+python3 scripts/seafile_api.py starred                        # starred items (/api/v2.1/starred-items/)
+python3 scripts/seafile_api.py shared-folders                 # shared folders (/api/v2.1/shared-folders/)
+python3 scripts/seafile_api.py share-links                    # all share links (/api/v2.1/share-links/)
+python3 scripts/seafile_api.py repo-share-links <repo_id>     # share links of one library
+python3 scripts/seafile_api.py groups                         # groups (/api2/groups/)
+python3 scripts/seafile_api.py group <group_id>               # group detail
+python3 scripts/seafile_api.py group-members <group_id>       # group members
+python3 scripts/seafile_api.py shared-items <repo_id> [--path /] [--share-type group]  # shared items in a dir
+python3 scripts/seafile_api.py dir-detail <repo_id> [--path /]  # dir detail incl. perms
+python3 scripts/seafile_api.py file-history <repo_id> --path /a.md [--page N --per-page N]
+python3 scripts/seafile_api.py file-revision <repo_id> --path /a.md --commit-id <id>  # old revision link
+python3 scripts/seafile_api.py repo-history <repo_id> [--page N --per-page N]         # library commit history
+python3 scripts/seafile_api.py smart-link <repo_id> --path /a.md   # smart link
+python3 scripts/seafile_api.py zip-task <repo_id> [--path /]       # create zip task
+python3 scripts/seafile_api.py zip-progress <zip_token>            # zip task progress
 python3 scripts/seafile_api.py repo <repo_id>                 # library detail
 python3 scripts/seafile_api.py ls <repo_id> --path /docs/     # directory listing
 python3 scripts/seafile_api.py ls <repo_id> --recursive       # recursive listing

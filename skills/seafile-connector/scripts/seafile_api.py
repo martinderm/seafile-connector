@@ -143,6 +143,72 @@ class SeafileClient:
         """Libraries this account shared with OTHERS (route /api2/shared-repos/)."""
         return self._request("GET", "/api2/shared-repos/")
 
+    # ---- extended read path -------------------------------------------
+
+    def get_account_info(self):
+        return self._request("GET", "/api2/account/info/")
+
+    def get_server_info(self):
+        return self._request("GET", "/api2/server-info/")
+
+    def get_default_repo(self):
+        return self._request("GET", "/api2/default-repo/")
+
+    def list_starred_items(self):
+        return self._request("GET", "/api/v2.1/starred-items/")
+
+    def list_shared_folders(self):
+        return self._request("GET", "/api/v2.1/shared-folders/")
+
+    def list_share_links(self):
+        return self._request("GET", "/api/v2.1/share-links/")
+
+    def list_repo_share_links(self, repo_id: str):
+        return self._request("GET", f"/api/v2.1/repos/{repo_id}/share-links/")
+
+    def list_groups(self):
+        return self._request("GET", "/api2/groups/")
+
+    def get_group(self, group_id):
+        return self._request("GET", f"/api/v2.1/groups/{group_id}/")
+
+    def list_group_members(self, group_id):
+        return self._request("GET", f"/api/v2.1/groups/{group_id}/members/")
+
+    def list_shared_items(self, repo_id: str, path: str = "/",
+                          share_type: str | None = None):
+        return self._request("GET", f"/api2/repos/{repo_id}/dir/shared_items/",
+                             params={"p": path, "share_type": share_type})
+
+    def get_dir_detail(self, repo_id: str, path: str = "/"):
+        return self._request("GET", f"/api/v2.1/repos/{repo_id}/dir/detail/",
+                             params={"p": path})
+
+    def get_file_history(self, repo_id: str, path: str,
+                         page: int = 1, per_page: int = 100):
+        return self._request("GET", f"/api/v2.1/repos/{repo_id}/file/history/",
+                             params={"p": path, "page": page, "per_page": per_page})
+
+    def get_file_revision_link(self, repo_id: str, path: str, commit_id: str):
+        return self._request("GET", f"/api2/repos/{repo_id}/file/revision/",
+                             params={"p": path, "commit_id": commit_id})
+
+    def get_repo_history(self, repo_id: str, page: int = 1, per_page: int = 100):
+        return self._request("GET", f"/api/v2.1/repos/{repo_id}/history/",
+                             params={"page": page, "per_page": per_page})
+
+    def get_smart_link(self, repo_id: str, path: str):
+        return self._request("GET", "/api/v2.1/smart-link/",
+                             params={"repo_id": repo_id, "p": path})
+
+    def get_zip_task(self, repo_id: str, path: str = "/"):
+        return self._request("GET", f"/api/v2.1/repos/{repo_id}/zip-task/",
+                             params={"p": path})
+
+    def get_zip_progress(self, zip_token: str):
+        return self._request("GET", "/api/v2.1/query-zip-progress/",
+                             params={"zip_token": zip_token})
+
     def _download_url(self, repo_id: str, path: str) -> str:
         link = self.get_download_link(repo_id, path)
         url = link.get("download_link") if isinstance(link, dict) else link
@@ -317,6 +383,66 @@ def main(argv=None) -> None:
 
     p = sub.add_parser("shared", help="list libraries this account shared with others (/api2/shared-repos/)")
 
+    p = sub.add_parser("account-info", help="account info (/api2/account/info/)")
+
+    p = sub.add_parser("server-info", help="server version and config (/api2/server-info/)")
+
+    p = sub.add_parser("default-repo", help="default library of this account (/api2/default-repo/)")
+
+    p = sub.add_parser("starred", help="starred files/dirs (/api/v2.1/starred-items/)")
+
+    p = sub.add_parser("shared-folders", help="shared folders (/api/v2.1/shared-folders/)")
+
+    p = sub.add_parser("share-links", help="all share links of this account (/api/v2.1/share-links/)")
+
+    p = sub.add_parser("repo-share-links", help="share links of one library")
+    p.add_argument("repo_id")
+
+    p = sub.add_parser("groups", help="list groups (/api2/groups/)")
+
+    p = sub.add_parser("group", help="group detail")
+    p.add_argument("group_id")
+
+    p = sub.add_parser("group-members", help="members of a group")
+    p.add_argument("group_id")
+
+    p = sub.add_parser("shared-items", help="shared items inside a library directory")
+    p.add_argument("repo_id")
+    p.add_argument("--path", default="/")
+    p.add_argument("--share-type", default=None, help="e.g. user or group")
+
+    p = sub.add_parser("dir-detail", help="directory detail incl. permissions "
+                                         "(/api/v2.1/repos/{repo_id}/dir/detail/)")
+    p.add_argument("repo_id")
+    p.add_argument("--path", default="/")
+
+    p = sub.add_parser("file-history", help="commit history of a file")
+    p.add_argument("repo_id")
+    p.add_argument("--path", required=True)
+    p.add_argument("--page", type=int, default=1)
+    p.add_argument("--per-page", type=int, default=100)
+
+    p = sub.add_parser("file-revision", help="download link of an old file revision")
+    p.add_argument("repo_id")
+    p.add_argument("--path", required=True)
+    p.add_argument("--commit-id", required=True)
+
+    p = sub.add_parser("repo-history", help="commit history of a library")
+    p.add_argument("repo_id")
+    p.add_argument("--page", type=int, default=1)
+    p.add_argument("--per-page", type=int, default=100)
+
+    p = sub.add_parser("smart-link", help="smart link (view/edit) for a path")
+    p.add_argument("repo_id")
+    p.add_argument("--path", required=True)
+
+    p = sub.add_parser("zip-task", help="create a zip task for a dir or file")
+    p.add_argument("repo_id")
+    p.add_argument("--path", default="/")
+
+    p = sub.add_parser("zip-progress", help="progress of a zip task")
+    p.add_argument("zip_token")
+
     p = sub.add_parser("trash", help="list trash of a library")
     p.add_argument("repo_id")
     p.add_argument("--page", type=int, default=1)
@@ -365,6 +491,44 @@ def main(argv=None) -> None:
         _emit(client.list_beshared_repos(), args.compact)
     elif args.command == "shared":
         _emit(client.list_shared_repos(), args.compact)
+    elif args.command == "account-info":
+        _emit(client.get_account_info(), args.compact)
+    elif args.command == "server-info":
+        _emit(client.get_server_info(), args.compact)
+    elif args.command == "default-repo":
+        _emit(client.get_default_repo(), args.compact)
+    elif args.command == "starred":
+        _emit(client.list_starred_items(), args.compact)
+    elif args.command == "shared-folders":
+        _emit(client.list_shared_folders(), args.compact)
+    elif args.command == "share-links":
+        _emit(client.list_share_links(), args.compact)
+    elif args.command == "repo-share-links":
+        _emit(client.list_repo_share_links(args.repo_id), args.compact)
+    elif args.command == "groups":
+        _emit(client.list_groups(), args.compact)
+    elif args.command == "group":
+        _emit(client.get_group(args.group_id), args.compact)
+    elif args.command == "group-members":
+        _emit(client.list_group_members(args.group_id), args.compact)
+    elif args.command == "shared-items":
+        _emit(client.list_shared_items(args.repo_id, path=args.path,
+                                       share_type=args.share_type), args.compact)
+    elif args.command == "dir-detail":
+        _emit(client.get_dir_detail(args.repo_id, args.path), args.compact)
+    elif args.command == "file-history":
+        _emit(client.get_file_history(args.repo_id, args.path,
+                                      page=args.page, per_page=args.per_page), args.compact)
+    elif args.command == "file-revision":
+        _emit(client.get_file_revision_link(args.repo_id, args.path, args.commit_id), args.compact)
+    elif args.command == "repo-history":
+        _emit(client.get_repo_history(args.repo_id, page=args.page, per_page=args.per_page), args.compact)
+    elif args.command == "smart-link":
+        _emit(client.get_smart_link(args.repo_id, args.path), args.compact)
+    elif args.command == "zip-task":
+        _emit(client.get_zip_task(args.repo_id, args.path), args.compact)
+    elif args.command == "zip-progress":
+        _emit(client.get_zip_progress(args.zip_token), args.compact)
     elif args.command == "trash":
         _emit(client.list_trash(args.repo_id, page=args.page, per_page=args.per_page), args.compact)
     elif args.command == "upload-link":
